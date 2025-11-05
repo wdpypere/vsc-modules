@@ -29,6 +29,7 @@ It also can check if the age of the current age and will report if it's too old.
 
 @author: Ward Poelmans (Ghent University)
 """
+
 import logging
 import os
 import time
@@ -45,10 +46,14 @@ def main():
     Returns the errors if any in a nagios/icinga friendly way.
     """
     options = {
-        'nagios-check-interval-threshold': NAGIOS_CHECK_INTERVAL_THRESHOLD,
-        'create-cache': ('Create the Lmod cache', None, 'store_true', False),
-        'freshness-threshold': ('The interval in minutes for how long we consider the cache to be fresh',
-                                'int', 'store', 120),
+        "nagios-check-interval-threshold": NAGIOS_CHECK_INTERVAL_THRESHOLD,
+        "create-cache": ("Create the Lmod cache", None, "store_true", False),
+        "freshness-threshold": (
+            "The interval in minutes for how long we consider the cache to be fresh",
+            "int",
+            "store",
+            120,
+        ),
     }
     opts = ExtendedSimpleOption(options)
 
@@ -62,14 +67,14 @@ def main():
 
             try:
                 stats = convert_lmod_cache_to_json()
-                logging.info("Got %s clusters and %s total modules", stats['clusters'], stats['total_modules'])
+                logging.info("Got %s clusters and %s total modules", stats["clusters"], stats["total_modules"])
                 opts.thresholds = stats
             except Exception as err:
                 opts.log.exception("Lmod to JSON failed: %s", err)
                 opts.critical("Lmod to JSON failed.")
 
         opts.log.info("Checking the Lmod cache freshness")
-        timestamp = os.stat(get_lmod_conf()['timestamp'])
+        timestamp = os.stat(get_lmod_conf()["timestamp"])
 
         # give a warning when the cache is older then --freshness-threshold
         if (time.time() - timestamp.st_mtime) > opts.options.freshness_threshold * 60:
@@ -90,5 +95,5 @@ def main():
         opts.epilogue("Lmod cache is still fresh.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

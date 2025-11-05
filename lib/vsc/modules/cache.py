@@ -36,17 +36,17 @@ from vsc.utils.run import run, RunNoShellAsyncLoop
 from distutils.version import LooseVersion
 from vsc.config.base import CLUSTER_DATA, MODULEROOT
 
-LMOD_CONFIG = '/etc/lmodrc.lua'
+LMOD_CONFIG = "/etc/lmodrc.lua"
 
-CACHEFILENAME = 'spiderT.lua'
+CACHEFILENAME = "spiderT.lua"
 
-JSON_MODULEMAP_FILENAME = 'modulemap.json'
+JSON_MODULEMAP_FILENAME = "modulemap.json"
 
 # this version key is the one holding the default version map
-DEFAULTKEY = '.default'
+DEFAULTKEY = ".default"
 
-MAIN_CLUSTERS_KEY = 'clusters'
-MAIN_SOFTWARE_KEY = 'software'
+MAIN_CLUSTERS_KEY = "clusters"
+MAIN_SOFTWARE_KEY = "software"
 
 # very dumb way to deal with difficulty to get utf8 safe data out of
 # lua using print. issue might also be with run.async
@@ -55,11 +55,12 @@ SIMPLE_UTF_FIX_REGEX = re.compile(r"\\x")
 
 class SoftwareVersion(LooseVersion):
     """Support even weirder non-sensical version schemes"""
-    component_re = re.compile(r'(v?\d+ | [a-z]+ | \.)', re.VERBOSE)
+
+    component_re = re.compile(r"(v?\d+ | [a-z]+ | \.)", re.VERBOSE)
 
     def parse(self, vstring):
         self.vstring = vstring
-        components = [x for x in self.component_re.split(vstring) if x and x != '.']
+        components = [x for x in self.component_re.split(vstring) if x and x != "."]
         for i, obj in enumerate(components):
             try:
                 # zfill and compare strings, to deal with mixed int/string versions
@@ -75,8 +76,9 @@ class SoftwareVersion(LooseVersion):
         try:
             return super()._cmp(other)
         except Exception as e:
-            logging.exception("Failed to compare %s (%s) with other %s (%s): %s",
-                         self, self.version, other, other.version, e)
+            logging.exception(
+                "Failed to compare %s (%s) with other %s (%s): %s", self, self.version, other, other.version, e
+            )
             raise
 
 
@@ -93,7 +95,7 @@ def run_cache_create():
         logging.error("Cannot find $LMOD_DIR in the environment.")
         raise RuntimeError("Cannot find $LMOD_DIR in the environment.")
 
-    return run([os.path.join(lmod_dir, 'update_lmod_system_cache_files'), MODULEROOT])
+    return run([os.path.join(lmod_dir, "update_lmod_system_cache_files"), MODULEROOT])
 
 
 def get_lua_via_json(filename, tablenames):
@@ -101,16 +103,16 @@ def get_lua_via_json(filename, tablenames):
     if not os.path.isfile(filename):
         log_and_raise("No valid file %s found", filename)
 
-    tabledata = ','.join([f"['{x}']={x}" for x in tablenames])
+    tabledata = ",".join([f"['{x}']={x}" for x in tablenames])
     luatemplate = "json=require('json');dofile('%s');print(json.encode({%s}))"
     luacmd = luatemplate % (filename, tabledata)
     # default asyncloop.run is slow: if the output is very big, code reads in 1k chunks
     #   so use larger readsize
-    arun = RunNoShellAsyncLoop(['lua', '-'], input=luacmd)
+    arun = RunNoShellAsyncLoop(["lua", "-"], input=luacmd)
     arun.readsize = 1024**2
     ec, out = arun._run()
     if ec:
-        log_and_raise(f"Lua export to json using \"{luacmd}\" failed: {out}")
+        log_and_raise(f'Lua export to json using "{luacmd}" failed: {out}')
 
     safe_out = SIMPLE_UTF_FIX_REGEX.sub("_____", out)
     data = json.loads(safe_out)
@@ -121,12 +123,12 @@ def get_lua_via_json(filename, tablenames):
 def get_lmod_conf():
     """Return Lmod config as dict"""
     # only one element, and it is a single-element list
-    return get_lua_via_json(LMOD_CONFIG, ['scDescriptT'])[0][0]
+    return get_lua_via_json(LMOD_CONFIG, ["scDescriptT"])[0][0]
 
 
 def get_lmod_cache(cachefile):
     """Return Lmod lua cache as list of modulepaths and spider data"""
-    return get_lua_via_json(cachefile, ['mpathMapT', 'spiderT'])
+    return get_lua_via_json(cachefile, ["mpathMapT", "spiderT"])
 
 
 def cluster_map(mpathMapT):
@@ -136,11 +138,11 @@ def cluster_map(mpathMapT):
     # map modulepath to list of clusters
     modulepathmap = {}
     for mpath, data in mpathMapT.items():
-        for clmod in [x for x in data.keys() if x.startswith('cluster/') or x.startswith('env/software/')]:
-            all_parts = clmod.split('/')
+        for clmod in [x for x in data.keys() if x.startswith("cluster/") or x.startswith("env/software/")]:
+            all_parts = clmod.split("/")
             # in older versions of cluster-modules, the paths are set via cluster module itelf
             #   as of v2, they are set via env/software module
-            if all_parts[0] == 'cluster':
+            if all_parts[0] == "cluster":
                 start = 1
             else:
                 start = 2
@@ -148,9 +150,9 @@ def cluster_map(mpathMapT):
 
             # also handle hidden cluster modules, incl hidden partitions
             #   (starting with . to indicate they are hidden)
-            clustername = parts[0].lstrip('.')
+            clustername = parts[0].lstrip(".")
             if len(parts) == 2:
-                partition = parts[1].lstrip('.')
+                partition = parts[1].lstrip(".")
                 cluster = f"{clustername}/{partition}"
                 if clustername in clustermap:
                     log_and_raise(f"Found existing cluster module {clustername} for cluster/partition {partition}")
@@ -161,12 +163,13 @@ def cluster_map(mpathMapT):
                     log_and_raise(f"Found existing partitions {partitions} for same cluster {clustername}")
 
             # recreate the cluster module to support env/software
-            clmod_cl = '/'.join(['cluster'] + parts)
+            clmod_cl = "/".join(["cluster"] + parts)
             tmpclmod = clustermap.setdefault(cluster, clmod_cl)
             if tmpclmod != clmod_cl:
                 log_and_raise(
                     f"Found 2 different cluster modules {tmpclmod} and {clmod_cl}"
-                    f" for same cluster {cluster} (clmod {clmod})")
+                    f" for same cluster {cluster} (clmod {clmod})"
+                )
             mpclusters = modulepathmap.setdefault(mpath, [])
             if cluster not in mpclusters:
                 mpclusters.append(cluster)
@@ -199,7 +202,7 @@ def sort_modulepaths(spiderT, mpmap):
     #   just search all EXTRA_MODULEPATHS last
     #      they are listed in prepend order, but default/most sensible one is prepended last
     #      so they are reversed: the first extra has to be moved as far as possible
-    for extras in [x.get('EXTRA_MODULEPATHS', [])[::-1] for x in CLUSTER_DATA.values()]:
+    for extras in [x.get("EXTRA_MODULEPATHS", [])[::-1] for x in CLUSTER_DATA.values()]:
         for extra in extras:
             # move to the end (if present)
             if extra in modulepaths:
@@ -232,11 +235,11 @@ def software_map(spiderT, mpmap):
             soft = softmap.setdefault(name, {})
             # all versions of this software in current modulepath
             mpversions = []
-            for fullname, fulldata in namedata['fileT'].items():
-                version = fulldata['Version']
+            for fullname, fulldata in namedata["fileT"].items():
+                version = fulldata["Version"]
                 # sanity check
                 txt = f"for modulepath {mpath} name {name} fullname {fullname}: {fulldata}"
-                if version != fulldata['canonical']:
+                if version != fulldata["canonical"]:
                     log_and_raise("Version != canonical " + txt)
                 if fullname != f"{name}/{version}":
                     log_and_raise("fullname != name/version " + txt)
@@ -248,20 +251,22 @@ def software_map(spiderT, mpmap):
             # determine default
             #   the default is per clusters (actually per modulepath)
             default = None
-            defaultdata = namedata['defaultT']
+            defaultdata = namedata["defaultT"]
 
             if defaultdata:
-                value = defaultdata['value']
+                value = defaultdata["value"]
                 if value:
                     if value.startswith(name + "/"):
                         # default has full name, we only need the versions
-                        default = value[len(name)+1:]
+                        default = value[len(name) + 1 :]
                     else:
                         default = value
 
                     if default not in soft:
-                        log_and_raise(f"Default value {default} found for {name} modulepath {mpmap} "
-                                      f"but not matching entry: {defaultdata}")
+                        log_and_raise(
+                            f"Default value {default} found for {name} modulepath {mpmap} "
+                            f"but not matching entry: {defaultdata}"
+                        )
                 else:
                     # see https://easybuild.readthedocs.io/en/latest/Wrapping_dependencies.html
                     logging.debug("Default without value found for %s modulepath %s: %s", name, mpath, defaultdata)
@@ -276,15 +281,20 @@ def software_map(spiderT, mpmap):
                 tmpdefault = softdefault.setdefault(cluster, default)
                 if tmpdefault != default:
                     # typically due to modulepath ordering
-                    logging.debug("Already found default for %s for cluster %s: found %s, new %s",
-                                 name, cluster, tmpdefault, default)
+                    logging.debug(
+                        "Already found default for %s for cluster %s: found %s, new %s",
+                        name,
+                        cluster,
+                        tmpdefault,
+                        default,
+                    )
     return softmap
 
 
 def get_json_filename():
     """Return the filename of the JSON data"""
     config = get_lmod_conf()
-    return os.path.join(config['dir'], JSON_MODULEMAP_FILENAME)
+    return os.path.join(config["dir"], JSON_MODULEMAP_FILENAME)
 
 
 def write_json(clustermap, softmap, filename=None):
@@ -293,10 +303,13 @@ def write_json(clustermap, softmap, filename=None):
         filename = get_json_filename()
 
     with atomic_write(filename, overwrite=True) as outfile:
-        json.dump({
-            MAIN_CLUSTERS_KEY: clustermap,
-            MAIN_SOFTWARE_KEY: softmap,
-        }, outfile)
+        json.dump(
+            {
+                MAIN_CLUSTERS_KEY: clustermap,
+                MAIN_SOFTWARE_KEY: softmap,
+            },
+            outfile,
+        )
         logging.debug("Wrote %s", filename)
 
     os.chmod(filename, 0o644)
@@ -306,7 +319,7 @@ def read_json(filename=None):
     """Read JSON and return cluster and software map"""
     if filename is None:
         filename = get_json_filename()
-    with open(filename, encoding='utf8') as outfile:
+    with open(filename, encoding="utf8") as outfile:
         data = json.load(outfile)
         logging.debug("Read %s", filename)
 
@@ -341,8 +354,14 @@ def software_cluster_view(softmap=None):
             try:
                 versions.remove(default)
             except ValueError as err:
-                logging.exception("Unable to remove default %s from versions %s for %s cluster %s: %s",
-                                      default, versions, name, cluster, err)
+                logging.exception(
+                    "Unable to remove default %s from versions %s for %s cluster %s: %s",
+                    default,
+                    versions,
+                    name,
+                    cluster,
+                    err,
+                )
                 raise err
             versions.insert(0, default)  # default first
 
@@ -359,16 +378,16 @@ def make_stats(clustermap, softmap):
                 continue
             for cl in clusters:
                 stats[f"modules_{cl}"] += 1
-    stats['total_modules'] = sum(stats.values())
-    stats['total_names'] = names
-    stats['clusters'] = len(clustermap)
+    stats["total_modules"] = sum(stats.values())
+    stats["total_names"] = names
+    stats["clusters"] = len(clustermap)
 
     return stats
 
 
 def convert_lmod_cache_to_json():
     """Main conversion of Lmod lua cache to cluster and software mapping in JSON"""
-    cachefile = os.path.join(get_lmod_conf()['dir'], CACHEFILENAME)
+    cachefile = os.path.join(get_lmod_conf()["dir"], CACHEFILENAME)
 
     mpathMapT, spiderT = get_lmod_cache(cachefile)
 

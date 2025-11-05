@@ -3,26 +3,24 @@
 """
 Setup file for some modules related tooling
 """
-import vsc.install.shared_setup as shared_setup
+
+from vsc.install import shared_setup
 from vsc.install.shared_setup import sdw
 
 PACKAGE = {
-    'version': '0.1.7',
-    'author': [sdw],
-    'maintainer': [sdw],
-    'setup_requires': [
-        'vsc-install >= 0.15.3',
+    "version": "0.1.7",
+    "author": [sdw],
+    "maintainer": [sdw],
+    "setup_requires": [
+        "vsc-install >= 0.15.3",
     ],
-    'install_requires': [
-        'vsc-base >= 3.1.1',  # fix for stdin.write in Python 3
-        'vsc-config',
-        'vsc-utils',
-        'atomicwrites',
-    ],
-    'tests_require': [
-        'mock',
+    "install_requires": [
+        "vsc-base >= 3.1.1",  # fix for stdin.write in Python 3
+        "vsc-config",
+        "vsc-utils",
+        "atomicwrites",
     ],
 }
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     shared_setup.action_target(PACKAGE)
